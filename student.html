@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Student App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  background:#1e3c72;
+  background:linear-gradient(to right,#2a5298,#1e3c72);
+  color:#fff;
+  font-family:Arial;
+  margin:0;
+  padding:0
+}
+.container{
+  background:rgba(255,255,255,0.15);
+  margin:15px;
+  padding:15px;
+  border-radius:12px
+}
+input,textarea{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  margin-bottom:12px;
+  border:none;
+  border-radius:8px
+}
+button{
+  padding:10px 18px;
+  border:none;
+  border-radius:8px;
+  background:#ffd54f;
+  color:#333;
+  font-weight:bold
+}
+.row{
+  background:rgba(255,255,255,0.2);
+  padding:10px;
+  margin-top:8px;
+  border-radius:10px
+}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<h2 style="text-align:center;">Student App</h2>
+
+<div id="loginBox" class="container">
+  <input id="email" placeholder="Email">
+  <input id="pass" placeholder="Password" type="password">
+  <button onclick="login()">Login</button>
+  <p id="msg"></p>
+</div>
+
+<div id="main" class="hidden">
+  <button onclick="logout()" style="margin-left:15px;">Logout</button>
+
+  <div class="container">
+    <h3>Your Homework</h3>
+    <div id="hwList"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxivvo_wS6tjpDUeWMgPDu04SscYkX4kr0UZ5pB0PB8YB0g-C6JKhgUF2LxrCzL2VJO/exec";
+let TOKEN="", USER={};
+
+function api(x){
+  return fetch(API_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(x)
+  }).then(r=>r.json());
+}
+
+async function login(){
+  let email=document.getElementById("email").value.trim();
+  let pass=document.getElementById("pass").value;
+
+  let res=await api({type:"login",email,password:pass});
+  if(!res.success){
+    document.getElementById("msg").textContent=res.error || "Login failed";
+    return;
+  }
+
+  if(res.user.role!=="student"){
+    document.getElementById("msg").textContent="Not a student account";
+    return;
+  }
+
+  TOKEN=res.token;
+  USER=res.user;
+
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("main").classList.remove("hidden");
+
+  loadHW();
+}
+
+function logout(){TOKEN="";location.reload();}
+
+async function loadHW(){
+  let r=await api({type:"listHomeworkStudent",token:TOKEN});
+  let box=document.getElementById("hwList");
+  box.innerHTML="";
+  if(!r.success){
+    box.textContent="Error: "+(r.error||"");
+    return;
+  }
+
+  r.homework.forEach(h=>{
+    let div=document.createElement("div");
+    div.className="row";
+    div.innerHTML=
+      `<b>${h.title}</b><br>${h.description}<br>Due: ${h.dueDate}`;
+    box.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
